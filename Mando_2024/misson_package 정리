@@ -1,0 +1,6 @@
+roscore
+rosrun rosserial_python serial_node.py 
+roslaunch ublox_gps ublox_device_intergrate.launch
+roslaunch ntrip_ros ntrip_ros.launch
+rosrun joy joy_node
+

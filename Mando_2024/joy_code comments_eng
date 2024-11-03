@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+# -*- coding:utf-8 -*-
+
+import rospy
+import math
+from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Joy
+from std_msgs.msg import Bool
+
+class joy_drive:
+    def __init__(self):
+        # if you use topic and variable with self, init is willig to help this.
+        # node name is also named this part. 
+        rospy.init_node('joy_drive')
+
+        rospy.Subscriber("/joy", Joy, self.joy_callback)
+        rospy.Subscriber("/main_cmd_joy", Bool, self.cmd_joy_callback)
+
+        self.drive_pub = rospy.Publisher("cmd_vel_steer", Twist, queue_size=1)
+
+        self.joy_toggle = True
+        self.manual = 0
+        self.speed = 0
+        self.steering = 0
+        
+
+        rospy.Timer(rospy.Duration(0.05), self.drive_control)
+
+    def cmd_joy_callback(self, data):
+        self.joy_toggle = data.data 
+
+    # read joy-stick data to use control.
+    # generally ()_callback is same role in code
+    def joy_callback(self, data):
+        self.joy_btn = data.buttons
+        self.joy_axes = data.axes
+        # if you press button[4], self.auto is changed to True
+        self.auto = self.joy_btn[4]
+        # same to btn[5]
+        self.manual = self.joy_btn[5]
+    
+    def drive_control(self, event):
+        # make topic sokect
+        drive = Twist()
+
+        # it is only useful Joy logic to be controlled by main code
+        if self.joy_toggle:
+            if self.manual == 1:
+                self.speed = self.joy_axes[1]
+                self.steering = self.joy_axes[2]
+                # this num can be swapped your circumstances
+                # in my case, speed max is 2.3, angle max is +-23(+-1)
+                drive.linear.x = self.speed * 1.2
+                drive.angular.z = self.steering * 20.0
+            # when you press nothing, it must be reset by 0,0
+            else:
+                drive.linear.x = 0
+                drive.angular.z = 0
+            # this is necessary to use ros topic system    
+            self.drive_pub.publish(drive)
+
+
+if __name__ == '__main__':
+    try:
+        joy_drive()
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("program down")
